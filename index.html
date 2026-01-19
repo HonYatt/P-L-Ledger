@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PnL Ledger</title>
+<meta name="theme-color" content="#ffffff" />
+<style>
+:root {
+  --green:#1db954; --red:#e5484d; --bg:#f7f7f8; --card:#ffffff; --text:#1c1c1e; --muted:#8e8e93; --radius:14px;
+}
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{margin:0;background:var(--bg);color:var(--text)}
+header{padding:16px;font-size:22px;font-weight:700}
+.container{padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.day{aspect-ratio:1;border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;cursor:pointer}
+.day.win{background:#eaf7ef;color:var(--green)}
+.day.loss{background:#fdecec;color:var(--red)}
+.day span{font-weight:600}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center}
+.modal-content{background:#fff;border-radius:16px;padding:20px;width:90%;max-width:320px}
+input,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;margin-bottom:10px}
+button{width:100%;padding:12px;border-radius:12px;border:none;background:var(--text);color:#fff;font-weight:600}
+.close{margin-top:8px;background:#ccc;color:#000}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{flex:1;padding:10px;border-radius:10px;background:#eee;text-align:center;font-weight:600}
+.tab.active{background:#000;color:#fff}
+</style>
+</head>
+<body>
+<header>PnL Ledger</header>
+<div class="container">
+  <div class="tabs">
+    <div class="tab active">Calendar</div>
+    <div class="tab">Analytics</div>
+    <div class="tab">Notes</div>
+    <div class="tab">Screenshots</div>
+  </div>
+
+  <div class="card">
+    <div class="calendar" id="calendar"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3 id="modalDate"></h3>
+    <input id="pnlInput" placeholder="Profit / Loss" />
+    <input id="tradesInput" placeholder="Trades" />
+    <textarea id="notesInput" placeholder="Notes"></textarea>
+    <button onclick="saveDay()">Save</button>
+    <button class="close" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('ledger')||'{}');
+let selectedDate='';
+
+function renderCalendar(){
+  const cal=document.getElementById('calendar');
+  cal.innerHTML='';
+  const now=new Date();
+  const year=now.getFullYear();
+  const month=now.getMonth();
+  const days=new Date(year,month+1,0).getDate();
+  for(let d=1;d<=days;d++){
+    const date=`${year}-${month+1}-${d}`;
+    const cell=document.createElement('div');
+    cell.className='day';
+    if(data[date]){
+      cell.classList.add(data[date].pnl>0?'win':'loss');
+    }
+    cell.innerHTML=`<span>${d}</span>`;
+    cell.onclick=()=>openModal(date);
+    cal.appendChild(cell);
+  }
+}
+
+function openModal(date){
+  selectedDate=date;
+  modal.style.display='flex';
+  modalDate.textContent=date;
+  const d=data[date]||{};
+  pnlInput.value=d.pnl||'';
+  tradesInput.value=d.trades||'';
+  notesInput.value=d.notes||'';
+}
+function closeModal(){modal.style.display='none'}
+
+function saveDay(){
+  const pnl=parseFloat(pnlInput.value)||0;
+  const trades=parseInt(tradesInput.value)||0;
+  data[selectedDate]={
+    pnl,trades,
+    winTrades:pnl>0?trades:0,
+    lossTrades:pnl<=0?trades:0,
+    notes:notesInput.value
+  };
+  localStorage.setItem('ledger',JSON.stringify(data));
+  closeModal();
+  renderCalendar();
+}
+
+renderCalendar();
+</script>
+</body>
+</html>
